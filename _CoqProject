@@ -1,0 +1,11 @@
+-Q theories NbE
+
+theories/Syntax.v
+theories/OPE.v
+theories/NormalForms.v
+theories/Model.v
+theories/Tests.v
+theories/Subst.v
+theories/DefEq.v
+theories/Soundness.v
+theories/Completeness.v
