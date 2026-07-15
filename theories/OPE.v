@@ -173,3 +173,69 @@ Proof.
       * intros G2 o''. simpl. rewrite IH. reflexivity.
       * intros G2 o''. simpl. rewrite IH. reflexivity.
 Qed.
+
+(** ** Variable case principle and [var_ren] functoriality (M4)
+
+    [var_cons_case] is to [var] what [ope_cons_case] is to [ope]: the axiom-free
+    inversion of a variable out of a cons context, needed in the proofs below
+    (and in [nf_ren]/[tm_ren] functoriality) wherever a [var (S :: Γ) T] must be
+    case-split at proof level. Same UIP-via-decidable-equality trick. *)
+
+Definition var_cast {G G' T} (e : G = G') (x : var G T) : var G' T :=
+  eq_rect G (fun X => var X T) x G' e.
+
+Lemma var_cons_case (S : ty) (Γ : cxt) (P : forall T, var (S :: Γ) T -> Prop)
+  (Hz : P S vz)
+  (Hs : forall T (y : var Γ T), P T (vs y))
+  : forall T (x : var (S :: Γ) T), P T x.
+Proof.
+  intros T x.
+  refine ((match x in var G T'
+                 return forall (e : G = S :: Γ), P T' (var_cast e x) with
+           | vz   => fun e => _
+           | vs y => fun e => _
+           end) eq_refl).
+  - injection e as e1 e2; subst. rewrite (UIP_dec cxt_eq_dec e eq_refl). exact Hz.
+  - injection e as e1 e2; subst. rewrite (UIP_dec cxt_eq_dec e eq_refl). apply Hs.
+Qed.
+
+(** [var_ren] is functorial: it takes [ope_id]/[ope_comp] to identity/composition.
+    These are the base cases of the corresponding [tm_ren]/[nf_ren] laws. *)
+
+Lemma var_ren_id : forall {Γ T} (x : var Γ T), var_ren ope_id x = x.
+Proof. intros Γ T x. induction x; simpl; [reflexivity | now rewrite IHx]. Qed.
+
+Lemma var_ren_comp :
+  forall {Δ Δ' Γ} (o1 : ope Δ Δ') (o2 : ope Δ' Γ) {T} (x : var Γ T),
+    var_ren (ope_comp o1 o2) x = var_ren o1 (var_ren o2 x).
+Proof.
+  intros Δ Δ' Γ o1. revert Γ.
+  induction o1 as [| Δ0 Δ'0 S0 o1 IH | Δ0 Δ'0 S0 o1 IH]; intros Γ o2 T x.
+  - reflexivity.
+  - simpl. rewrite IH. reflexivity.
+  - revert T x.
+    refine (ope_cons_case S0 Δ'0
+              (fun G o2 => forall T (x : var G T),
+                   var_ren (ope_comp (ope_keep o1) o2) x
+                   = var_ren (ope_keep o1) (var_ren o2 x)) _ _ Γ o2).
+    + intros G o2' T x. simpl. rewrite IH. reflexivity.
+    + intros G o2' T x.
+      revert T x.
+      refine (var_cons_case S0 G (fun T x =>
+        var_ren (ope_comp (ope_keep o1) (ope_keep o2')) x
+        = var_ren (ope_keep o1) (var_ren (ope_keep o2') x)) _ _).
+      * reflexivity.
+      * intros T0 y. simpl. rewrite IH. reflexivity.
+Qed.
+
+(** The weakening naturality square: pushing a [wk] past a [keep] is the same as
+    pushing it past nothing — both drop the fresh variable. This is the OPE
+    identity the reification-at-arrow case of the soundness sandwich turns on
+    ([reify] goes under a binder with [wk]). Both sides equal [ope_drop o]. *)
+Lemma ope_comp_keep_wk : forall {Δ Γ S} (o : ope Δ Γ),
+    ope_comp (ope_keep (S:=S) o) wk = ope_drop o.
+Proof. intros. simpl. now rewrite ope_comp_id_r. Qed.
+
+Lemma ope_comp_wk : forall {Δ Γ S} (o : ope Δ Γ),
+    ope_comp (wk (S:=S)) o = ope_drop o.
+Proof. intros. simpl. now rewrite ope_comp_id_l. Qed.

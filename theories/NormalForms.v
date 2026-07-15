@@ -77,3 +77,54 @@ with ne_emb {Γ T} (u : ne Γ T) {struct u} : tm Γ T :=
   | napp u' v       => tapp (ne_emb u') (nf_emb v)
   | nrec vz' vs' u' => trec (nf_emb vz') (nf_emb vs') (ne_emb u')
   end.
+
+(** ** Functoriality of [nf_ren]/[ne_ren] (M4)
+
+    These make [nf]/[ne] genuine presheaves and are part of the renaming-lemma
+    budget plan.md risk #4 warns about. The combined mutual induction scheme is
+    the clean way to prove a statement about both families at once. The [nlam]
+    cases hold because [ope_keep] commutes with [ope_id]/[ope_comp]
+    *definitionally* (that is exactly how [ope_id]/[ope_comp] are written), so no
+    OPE lemma is needed there; the [nvar] cases use [var_ren_id]/[var_ren_comp]. *)
+
+Scheme nf_mutind := Induction for nf Sort Prop
+  with ne_mutind := Induction for ne Sort Prop.
+Combined Scheme nf_ne_mutind from nf_mutind, ne_mutind.
+
+Lemma nf_ne_ren_id :
+  (forall Γ T (v : nf Γ T), nf_ren ope_id v = v) /\
+  (forall Γ T (u : ne Γ T), ne_ren ope_id u = u).
+Proof.
+  apply nf_ne_mutind; intros; simpl; try reflexivity.
+  - now rewrite H.
+  - now rewrite H.
+  - simpl in *; now rewrite H.
+  - now rewrite var_ren_id.
+  - now rewrite H, H0.
+  - now rewrite H, H0, H1.
+Qed.
+
+Lemma nf_ne_ren_comp :
+  (forall Γ T (v : nf Γ T) Δ Δ' (o1 : ope Δ Δ') (o2 : ope Δ' Γ),
+     nf_ren (ope_comp o1 o2) v = nf_ren o1 (nf_ren o2 v)) /\
+  (forall Γ T (u : ne Γ T) Δ Δ' (o1 : ope Δ Δ') (o2 : ope Δ' Γ),
+     ne_ren (ope_comp o1 o2) u = ne_ren o1 (ne_ren o2 u)).
+Proof.
+  apply nf_ne_mutind; intros; simpl; try reflexivity.
+  - now rewrite H.
+  - now rewrite H.
+  - rewrite <- H; reflexivity.
+  - now rewrite var_ren_comp.
+  - now rewrite H, H0.
+  - now rewrite H, H0, H1.
+Qed.
+
+(** Named projections, for readable [rewrite]s downstream. *)
+Definition nf_ren_id {Γ T} := proj1 nf_ne_ren_id Γ T.
+Definition ne_ren_id {Γ T} := proj2 nf_ne_ren_id Γ T.
+Definition nf_ren_comp {Γ T} := proj1 nf_ne_ren_comp Γ T.
+Definition ne_ren_comp {Γ T} := proj2 nf_ne_ren_comp Γ T.
+
+(** (Naturality of the embeddings [nf_emb]/[ne_emb] w.r.t. renaming is proved in
+    Soundness.v, where [tm_ren] is in scope — it relates [tm_ren] (Subst.v) with
+    the [nf_ren] here, so it cannot live in this earlier file.) *)

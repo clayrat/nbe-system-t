@@ -175,3 +175,38 @@ Fixpoint eval {Γ T Δ} (t : tm Γ T) (ρ : Env Δ Γ) {struct t} : sem T Δ :=
 Definition env_id {Γ} : Env Γ Γ := fun T x => reflect T (nvar x).
 
 Definition norm {Γ T} (t : tm Γ T) : nf Γ T := reify T (eval t env_id).
+
+(** * Semantic-nat lemmas for soundness (M4)
+
+    [semnat_ren] is functorial, and [reify_nat] is natural in the OPE. The
+    latter is what the base case of the reification sandwich (Soundness.v) needs
+    to commute [nf_ren] past [reify_nat]. Both by induction on the [SemNat];
+    axiom-free. *)
+
+Lemma semnat_ren_id : forall {Γ} (n : SemNat Γ), semnat_ren ope_id n = n.
+Proof.
+  intros Γ n; induction n; simpl.
+  - reflexivity.
+  - now rewrite IHn.
+  - now rewrite ne_ren_id.
+Qed.
+
+Lemma semnat_ren_comp :
+  forall {Δ Δ' Γ} (o1 : ope Δ Δ') (o2 : ope Δ' Γ) (n : SemNat Γ),
+    semnat_ren (ope_comp o1 o2) n = semnat_ren o1 (semnat_ren o2 n).
+Proof.
+  intros Δ Δ' Γ o1 o2 n; induction n; simpl.
+  - reflexivity.
+  - now rewrite IHn.
+  - now rewrite ne_ren_comp.
+Qed.
+
+Lemma reify_nat_natural :
+  forall {Δ Γ} (o : ope Δ Γ) (n : SemNat Γ),
+    nf_ren o (reify_nat n) = reify_nat (semnat_ren o n).
+Proof.
+  intros Δ Γ o n; induction n; simpl.
+  - reflexivity.
+  - now rewrite IHn.
+  - reflexivity.
+Qed.
