@@ -8,4 +8,5 @@ theories/Tests.v
 theories/Subst.v
 theories/DefEq.v
 theories/Soundness.v
+theories/PER.v
 theories/Completeness.v
