@@ -10,3 +10,4 @@ theories/DefEq.v
 theories/Soundness.v
 theories/PER.v
 theories/Completeness.v
+theories/Decide.v
